@@ -1,0 +1,6 @@
+/postgres-data/
+/.idea/
+/.bsp/
+/*/target/
+/target/
+/project/project/target/
