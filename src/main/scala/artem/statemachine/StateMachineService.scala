@@ -2,8 +2,9 @@ package artem.statemachine
 
 import artem.statemachine.model.Model._
 import artem.statemachine.model._
+import org.http4s.circe._
 import cats.effect.IO
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.auto._
 import org.http4s.Method.POST
 import org.http4s.Uri.Path.Root
@@ -27,15 +28,19 @@ object StateMachineService {
           entityName <- req.as[EntityName]
           resp <- Ok(controller.createEntity(entityName))
             .handleErrorWith {
-              case EntityAlreadyExists(_) => Conflict(s"Entity already exists: [${entityName.name}]")
+              case EntityAlreadyExists(_) =>
+                Conflict(Json.obj("error_message" -> Json.fromString(s"Entity already exists: [${entityName.name}]")))
             }
         } yield resp
 
       case POST -> Root / "entities" / LongVar(entityId) / "transit" / newStatus =>
         Ok(controller.transitEntity(EntityId(entityId), EntityStatus(newStatus))).handleErrorWith {
-          case EntityNotFound(_) => NotFound(s"Entity not found: [$entityId]")
-          case UnknownStatus(status) => BadRequest(s"Unknown status: [${status.status}]")
-          case IllegalTransition(from, to) => NotAcceptable(s"Transition is not allowed: [${from.status} -> ${to.status}]")
+          case EntityNotFound(_) =>
+            NotFound(Json.obj("error_message" -> Json.fromString(s"Entity not found: [$entityId]")))
+          case UnknownStatus(status) =>
+            BadRequest(Json.obj("error_message" -> Json.fromString(s"Unknown status: [${status.status}]")))
+          case IllegalTransition(from, to) =>
+            NotAcceptable(Json.obj("error_message" -> Json.fromString(s"Transition is not allowed: [${from.status} -> ${to.status}]")))
         }
 
       case GET -> Root / "entities" / LongVar(entityId) / "history" =>
